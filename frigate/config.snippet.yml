@@ -1,0 +1,20 @@
+# Add this stream to the `go2rtc: streams:` section of your Frigate config.yml.
+#
+# The KEY detail: the source must be `onvif://` — plain RTSP (port 554) has NO
+# backchannel, so audio-send fails. ONVIF (Reolink default port 8000) exposes
+# the two-way audio path go2rtc needs to push audio to the speaker.
+#
+# {FRIGATE_CAMERA_PASSWORD} is substituted by Frigate from your env/secrets —
+# do not hardcode credentials here.
+
+go2rtc:
+  streams:
+    # ... your existing camera streams ...
+
+    # Arnold soundboard: ONVIF two-way-audio backchannel for pushing audio
+    # OUT the doorbell speaker.
+    doorbell_talk:
+      - onvif://admin:{FRIGATE_CAMERA_PASSWORD}@CAMERA_IP:8000/
+
+# Quick manual test once Frigate has reloaded (should speak from the doorbell):
+#   curl -X POST "http://GO2RTC_HOST:1984/api/ffmpeg?dst=doorbell_talk&file=/media/frigate/arnold/choppa.mp3"

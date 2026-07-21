@@ -1,0 +1,68 @@
+# Illustrative sample — the REAL file (with the full 432-clip list) is produced
+# by scripts/generate_config.py. Copy the generated file to your HA packages/ dir.
+# Requires `homeassistant: packages: !include_dir_named packages/` in configuration.yaml.
+#
+# Replace GO2RTC_HOST and the container clip path for your setup.
+
+rest_command:
+  arnold_doorbell:
+    method: POST
+    url: "http://GO2RTC_HOST:1984/api/ffmpeg?dst=doorbell_talk&file=/media/frigate/arnold/{{ clip }}.mp3"
+    timeout: 20
+
+input_text:
+  arnold_last_played:
+    name: Arnold Last Played
+    icon: mdi:bullhorn
+    max: 255
+
+input_select:
+  arnold_clip:
+    name: Arnold Full Library
+    icon: mdi:playlist-music
+    options:
+      - choppa
+      - hasta
+      - beback
+      - imback
+      - doitnow
+      # ... 427 more (generated) ...
+
+script:
+  arnold_play:
+    alias: Arnold Play Clip
+    icon: mdi:bullhorn
+    mode: restart
+    fields:
+      clip:
+        description: Clip basename (no extension)
+        example: choppa
+    sequence:
+      - service: rest_command.arnold_doorbell
+        data:
+          clip: "{{ clip }}"
+      - service: input_text.set_value
+        target:
+          entity_id: input_text.arnold_last_played
+        data:
+          value: "{{ clip }}"
+
+  arnold_play_selected:
+    alias: Arnold Play Selected
+    icon: mdi:play-circle
+    mode: restart
+    sequence:
+      - service: script.arnold_play
+        data:
+          clip: "{{ states('input_select.arnold_clip') }}"
+
+  arnold_random:
+    alias: Arnold Random
+    icon: mdi:shuffle-variant
+    mode: restart
+    sequence:
+      - variables:
+          clips: ["choppa", "hasta", "beback", "doitnow", "hello"]  # generated: full clean list
+      - service: script.arnold_play
+        data:
+          clip: "{{ clips | random }}"

@@ -1,0 +1,82 @@
+# Illustrative Lovelace view for the soundboard (trimmed — a few buttons per
+# section). Live doorbell feed on top so you watch the visitor while triggering.
+# Add as a new view in your dashboard (YAML mode), or adapt into a storage view.
+#
+# Buttons call script.arnold_play with a `clip` (the padded file's basename).
+
+title: Arnold
+path: arnold
+icon: mdi:sunglasses
+cards:
+  - type: markdown
+    content: >
+      # 🕶️ Arnold Soundboard
+
+      Tap a line — it plays out the doorbell speaker. Watch their face.
+
+  # Live feed (frigate-hass-card) — keep the mic toggle for real two-way talk too.
+  - type: custom:frigate-card
+    cameras:
+      - camera_entity: camera.doorbell
+        live_provider: go2rtc
+        go2rtc:
+          modes: [webrtc]
+    view:
+      default: live
+    dimensions:
+      aspect_ratio_mode: static
+      aspect_ratio: "16:9"
+
+  - type: button
+    name: 🎲 RANDOM ARNOLD
+    icon: mdi:dice-multiple
+    tap_action:
+      action: perform-action
+      perform_action: script.arnold_random
+
+  - type: markdown
+    content: "### ⚡ Quick Reactions"
+  - type: grid
+    columns: 2
+    square: false
+    cards:
+      - type: button
+        name: Get to the Choppa!
+        icon: mdi:helicopter
+        tap_action:
+          action: perform-action
+          perform_action: script.arnold_play
+          data: { clip: choppa }
+      - type: button
+        name: I'll Be Back
+        icon: mdi:robot
+        tap_action:
+          action: perform-action
+          perform_action: script.arnold_play
+          data: { clip: beback }
+      - type: button
+        name: Hasta la Vista
+        icon: mdi:sunglasses
+        tap_action:
+          action: perform-action
+          perform_action: script.arnold_play
+          data: { clip: hasta }
+
+  - type: markdown
+    content: "### 📚 Full Library"
+  - type: entities
+    entities:
+      - entity: input_select.arnold_clip
+        name: Pick any clip
+      - type: button
+        name: Play selected
+        icon: mdi:play
+        action_name: PLAY
+        tap_action:
+          action: perform-action
+          perform_action: script.arnold_play_selected
+      - entity: input_text.arnold_last_played
+        name: Last played
+        icon: mdi:history
+      - entity: number.front_door_doorbell_volume
+        name: Doorbell volume

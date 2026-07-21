@@ -1,0 +1,55 @@
+# Basenames the sample dashboard's curated buttons expect (no extension).
+# The full library is ~432 clips; these are the front-of-board picks.
+# Keep the front board family-safe — it fires at whoever's at the door.
+
+# Quick reactions
+choppa
+beback
+hasta
+doitnow
+comeon
+hello
+
+# Classics
+imback
+coldblood
+conan
+justdoit
+imterm
+johnconnor
+gameover
+noooooo
+ilied
+getall
+
+# Greetings
+hi
+hihoney
+howdy
+howdoinbuddy
+howru
+sup
+morn
+hearu
+
+# Reactions
+haha
+funny
+thatisfunny
+huh
+what
+exactly
+terrific
+surprise
+ohno
+yeah
+yes
+no
+hungry
+yummy
+goodbye
+thankyou
+dontworry
+wait
+listen
+sure

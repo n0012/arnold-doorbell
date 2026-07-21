@@ -1,0 +1,17 @@
+# Never commit the audio clips — copyrighted, and big.
+*.mp3
+*.wav
+*.aac
+clips/
+arnold/
+padded/
+
+# Secrets / local config
+.env
+secrets.yaml
+*.local.yaml
+
+# Junk
+.DS_Store
+__pycache__/
+*.pyc
