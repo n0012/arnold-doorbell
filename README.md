@@ -4,6 +4,12 @@
 
 Part home-automation project, part love letter to the **eBaum's World soundboards** of the early 2000s. Somebody's at the door? *"WHO IS YOUR DADDY, AND WHAT DOES HE DO?"*
 
+<p align="center">
+  <img src="assets/dashboard.png" alt="Arnold Soundboard dashboard in Home Assistant" width="360">
+</p>
+
+<sub>The soundboard view in Home Assistant — live doorbell feed up top, one-tap Arnold below. (UI preview; the live tile is a placeholder.)</sub>
+
 ---
 
 ## What it does
@@ -20,9 +26,9 @@ No Reolink cloud. No mobile-vendor SDK. No custom firmware. Just ONVIF, `go2rtc`
 
 ## Why
 
-The house had this gag years ago on an old **Dahua** doorbell, which exposed a dead-simple HTTP endpoint you could `POST` raw audio to. That doorbell got replaced with a modern **Reolink Video Doorbell (D340W)** — and the gag died, because Reolink has no such endpoint. The 432-clip Arnold library sat stranded.
+Because someone rings your doorbell and it should be able to answer in Arnold's voice.
 
-This project brings it back on the new hardware, the *right* way: through the doorbell's standard **ONVIF two-way audio backchannel**.
+Reolink doesn't expose a simple "play this audio file" API — but every modern Reolink with a speaker has an **ONVIF two-way audio backchannel**, and go2rtc can push arbitrary audio down it. So: a 400+ clip Arnold soundboard, on the front door, triggered from your phone while you watch the live feed.
 
 ---
 
@@ -96,7 +102,7 @@ Full walkthrough in [`docs/setup.md`](docs/setup.md). The short version:
 - 🎥 **[Frigate](https://frigate.video)** — which bundles go2rtc and made this a config change instead of a new service.
 - 🏠 **[Home Assistant](https://www.home-assistant.io/)** and the **[frigate-hass-card](https://github.com/dermotduffy/frigate-hass-card)**.
 - 🕹️ **Spiritual credit to the classic [eBaum's World Arnold Schwarzenegger Soundboard](https://www.ebaumsworld.com/soundboards/arnold-schwarzenegger-soundboard-1/1876/)** — and the countless other eBaum's boards that defined an era of internet dumb fun. This is that, on a doorbell.
-- 📞 **Inspiration** — the golden age of soundboard prank calls, e.g. [this Arnold prank compilation](https://www.youtube.com/watch?v=_hPRl5_MDks). Now the "call" is whoever walks up to the door.
+- 📞 **Inspiration** — the golden age of soundboard prank calls, e.g. [this Arnold prank call](https://www.ebaumsworld.com/videos/arnold-prank-call/45855/). Now the "call" is whoever walks up to the door.
 - 🎙️ **Arnold audio clips** are **© their respective rights holders** (the films / Arnold Schwarzenegger). They are **not redistributed in this repo** — supply your own for personal use. Don't ship them commercially.
 
 **Code in this repo is MIT-licensed** (see [`LICENSE`](LICENSE)). The clips are not mine to license.
