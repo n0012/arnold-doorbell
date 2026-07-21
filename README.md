@@ -5,7 +5,7 @@
 Part home-automation project, part love letter to the **eBaum's World soundboards** of the early 2000s. Somebody's at the door? *"WHO IS YOUR DADDY, AND WHAT DOES HE DO?"*
 
 <p align="center">
-  <img src="assets/dashboard.png" alt="Arnold Soundboard dashboard in Home Assistant" width="820">
+  <img src="assets/soundboard-16x9.png" alt="Arnold Soundboard dashboard in Home Assistant" width="820">
 </p>
 
 <sub>The soundboard in Home Assistant — live doorbell feed, one-tap Arnold, and the full library. (UI preview; the live tile is a placeholder.)</sub>
