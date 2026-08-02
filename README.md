@@ -51,11 +51,25 @@ Reolink doesn't expose a simple "play this audio file" API — but every modern 
 - A Home Assistant **`rest_command`** hits go2rtc's `/api/ffmpeg` endpoint with a clip path; go2rtc transcodes and pushes it down the backchannel.
 - A tiny **`script` + `input_select` + `input_text`** package drives the whole thing; the dashboard is just buttons calling the script with different `clip` values.
 
-### The two engineering problems worth knowing about
+### The three engineering problems worth knowing about
 
 **1. The tail got cut off.** First working test played `"Get to the choppa!"` … but go2rtc tears the backchannel down the instant the file's audio data ends, so the last word never finished traveling to the speaker. **Fix:** pre-pad every clip with a short lead-in + **trailing silence** (`ffmpeg` `adelay` + `apad`) so the real audio fully flushes before the channel closes. See [`scripts/pad-clips.sh`](scripts/pad-clips.sh).
 
-**2. Don't duplicate the library.** The padded clips have to live somewhere go2rtc can read by path. Copying them into the HA or Frigate config dirs bloats backups; HA won't serve them via symlink (`follow_symlinks=False`); on-the-fly padding through the API wasn't supported by the go2rtc build. **Fix:** store the ~8 MB of padded clips on the **NVR storage volume** the Frigate container already mounts — negligible footprint, read straight off disk (and page-cached in RAM anyway).
+**2. Don't duplicate the library — but don't park it in camera storage either.** The padded clips have to live somewhere go2rtc can read by path. Copying them into the HA or Frigate config dirs bloats backups; HA won't serve them via symlink (`follow_symlinks=False`); on-the-fly padding through the API wasn't supported by the go2rtc build.
+
+An earlier version of this README said to put the ~8 MB of clips on the **NVR storage volume Frigate already mounts**. **Don't.** That volume is camera storage — when it gets migrated to a different disk, the clips don't come with it and the entire soundboard goes silent. Worse, it fails *invisibly* (see gotcha #3).
+
+**Fix:** keep the clips in their own directory and mount it read-only into the Frigate container at a path outside `/media/frigate`:
+
+```yaml
+frigate:
+  volumes:
+    - /path/to/arnold/clips:/arnold-clips:ro
+```
+
+Then reference `/arnold-clips/<clip>.mp3` in the `rest_command`. Camera storage can now be moved freely without touching the soundboard.
+
+**3. A missing clip returns HTTP 200.** go2rtc answers `200 OK` whether the file exists or not — verified against both a bogus path and a bogus URL. Home Assistant therefore logs every tap as successful while nothing plays, and `script.arnold_play` shows a clean run in the trace. If your soundboard ever goes quiet with no errors anywhere, **check the clips are actually where go2rtc expects them** before debugging anything else. The optional [`arnold-session`](arnold-session/) sidecar exists partly to turn this into a real 404.
 
 ---
 
@@ -81,14 +95,22 @@ Full walkthrough in [`docs/setup.md`](docs/setup.md). The short version:
 3. **Add the go2rtc backchannel stream.** Drop the `doorbell_talk` stream from [`frigate/config.snippet.yml`](frigate/config.snippet.yml) into your Frigate `go2rtc:` config.
 4. **Install the HA package.** Copy [`homeassistant/packages/arnold.yaml.example`](homeassistant/packages/arnold.yaml.example) → your `packages/arnold.yaml`, fill in your host/paths.
 5. **Build the dashboard.** Generate it with [`scripts/generate_dashboard.py`](scripts/generate_dashboard.py) or adapt [`homeassistant/dashboard-arnold.example.yaml`](homeassistant/dashboard-arnold.example.yaml).
-6. **Test:** `curl -X POST "http://<go2rtc>:1984/api/ffmpeg?dst=doorbell_talk&file=/path/to/choppa.mp3"` → the doorbell should speak.
+6. **Test:** `curl -X POST "http://<go2rtc>:1984/api/ffmpeg?dst=doorbell_talk&file=/arnold-clips/choppa.mp3"` → the doorbell should speak. **A 200 here means nothing** (see gotcha #3) — trust your ears, not the status code.
+7. **Optional:** add the [`arnold-session`](arnold-session/) sidecar for ~0.43s first-tap latency and a real 404 on a missing clip.
 
 ---
 
 ## Design notes / gotchas
 
-- **One audio channel.** The soundboard and human intercom (Reolink app *or* the live-card mic) share the doorbell's single audio-in path — mutually exclusive at any instant. Keeping the backchannel "warm" to reduce first-tap latency (~1–1.5 s) is possible, but a *persistent* warm session can block the human talk feature. This build leaves it cold-on-demand to keep the intercom reliable.
-- **Latency is the backchannel handshake**, not disk I/O. The clips are tiny and cached; NVMe won't help. The real lever is warming the ONVIF session.
+- **One audio channel.** The soundboard and human intercom (Reolink app *or* the live-card mic) share the doorbell's single audio-in path — mutually exclusive at any instant. A *persistent* warm session is the risk here: reports exist of an open backchannel keeping the ring light on, disabling the chime, and stranding the doorbell in 2-way mode until Frigate restarts. The optional [`arnold-session`](arnold-session/) sidecar takes a middle path — warm **on demand**, dropped after 90s idle — and measurement shows it never holds `:8000` at all (it holds a `:554` video stream), so that failure mode does not appear to apply. Confirm on your own hardware.
+- **Latency is the backchannel handshake**, not disk I/O. The clips are tiny and cached; NVMe won't help. Measured: **~1.55s cold**, **~0.72s** with a session held, **~0.43s** for the first clip when pre-warmed on the doorbell press. ffmpeg spawn is only ~0.15s of it, and the camera answers ONVIF in ~90ms — the rest is the RTSP handshake.
+- **The handshake cost is architectural, not tunable.** go2rtc's `dst=` API spawns ffmpeg and does a full RTSP `DESCRIBE/SETUP/PLAY` with `Require: backchannel` on *every* call. A persistent backchannel relay is an [open feature request](https://github.com/AlexxIT/go2rtc/issues/1899). Holding a session is the only workaround available today.
+- **Set `#backchannel=0` on the doorbell's other sources.** If the same camera's video sources also negotiate the backchannel, they contend with `doorbell_talk`, which go2rtc documents as blocking backchannel access. Worth fixing for correctness — though in our testing it made **no measurable difference to latency** (1.80s → 1.74s cold, within noise).
+- **Things that sound like they'd help and don't:**
+  - *Pre-transcoding clips to G.711* to skip mp3 decode: **no effect.** A 0.2s clip costs the same as a 5s one — the cost is fixed setup, independent of format and duration.
+  - *An audio-only keepalive* (`/api/stream.aac`): does not hold an RTSP session; latency decays straight back to cold.
+  - *Serving clips to go2rtc over HTTP* instead of by path: **unverifiable**, because a bogus URL returns 200 exactly like a bogus path (gotcha #3).
+- **Want genuinely lower latency? That's [neolink](https://github.com/thirtythreeforty/neolink).** It speaks Reolink's native Baichuan protocol on port 9000 and reportedly reaches Reolink-app talkback latency. Caveats worth weighing: it's reverse-engineered and firmware-sensitive, the documented install needs `apt install` inside the Frigate container (which does not survive container recreation — you end up maintaining a custom image), and if Home Assistant's Reolink integration is already holding a Baichuan connection, a second client can contend with it. It solves *live intercom* latency; for firing pre-recorded clips, a warm session already gets you to ~0.43s.
 - **Keep it family-safe at the door.** The library has some… spicy Arnold. The dashboard front-loads clean clips and tucks the rest into the full-library dropdown.
 
 ---

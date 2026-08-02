@@ -16,7 +16,7 @@ Usage:
       --clips ./arnold \
       --go2rtc http://192.168.1.10:1984 \
       --stream doorbell_talk \
-      --container-dir /media/frigate/arnold \
+      --container-dir /arnold-clips \
       --out arnold.yaml
 
 Explicit/NSFW basenames listed in EXCLUDE are kept OUT of the random pool
@@ -42,7 +42,7 @@ def main():
     ap.add_argument("--clips", required=True, help="dir of clip .mp3 files (basenames become clip ids)")
     ap.add_argument("--go2rtc", required=True, help="go2rtc base URL, e.g. http://192.168.1.10:1984")
     ap.add_argument("--stream", default="doorbell_talk")
-    ap.add_argument("--container-dir", default="/media/frigate/arnold",
+    ap.add_argument("--container-dir", default="/arnold-clips",
                     help="clip dir path AS SEEN BY the go2rtc/Frigate container")
     ap.add_argument("--out", default="arnold.yaml")
     a = ap.parse_args()

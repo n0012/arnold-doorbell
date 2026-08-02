@@ -1,0 +1,39 @@
+# Optional warm-session sidecar. See arnold-session/README.md.
+#
+# The clips must be readable by BOTH containers: arnold-session only checks that
+# a clip exists, while go2rtc (inside Frigate) opens the file itself.
+#
+# Deliberately NOT stored under Frigate's /media/frigate camera-storage volume.
+# Putting them there means migrating camera storage silently takes the whole
+# soundboard with it, and go2rtc's 200-for-a-missing-file makes that invisible.
+
+services:
+  arnold-session:
+    container_name: arnold-session
+    image: python:3-alpine
+    restart: unless-stopped
+    command: python /app/app.py
+    ports:
+      - "8098:8098"
+    volumes:
+      - ./arnold-session:/app:ro
+      - /path/to/arnold/clips:/clips:ro
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      GO2RTC_URL: http://GO2RTC_HOST:1984
+      STREAM: doorbell_talk
+      IDLE_TIMEOUT: "90"
+      # Path as go2rtc sees it, i.e. inside the Frigate container
+      REMOTE_CLIP_DIR: /arnold-clips
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8098/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Add the same clips to your existing Frigate service:
+  #
+  # frigate:
+  #   volumes:
+  #     - /path/to/arnold/clips:/arnold-clips:ro

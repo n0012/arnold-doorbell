@@ -5,10 +5,46 @@
 # Replace GO2RTC_HOST and the container clip path for your setup.
 
 rest_command:
+  # Direct to go2rtc. Simple, but every tap pays the ~1.55s backchannel
+  # handshake, and a missing clip returns 200 so failures are silent.
   arnold_doorbell:
     method: POST
-    url: "http://GO2RTC_HOST:1984/api/ffmpeg?dst=doorbell_talk&file=/media/frigate/arnold/{{ clip }}.mp3"
+    url: "http://GO2RTC_HOST:1984/api/ffmpeg?dst=doorbell_talk&file=/arnold-clips/{{ clip }}.mp3"
     timeout: 20
+
+  # OPTIONAL: route through the arnold-session sidecar instead (see
+  # ../../arnold-session/). Holds the session warm while the soundboard is in
+  # use (~0.43s a tap) and returns a real 404 on a missing clip. To use it,
+  # comment out the arnold_doorbell above and uncomment these.
+  #
+  # arnold_doorbell:
+  #   method: POST
+  #   url: "http://ARNOLD_SESSION_HOST:8098/play?clip={{ clip }}"
+  #   timeout: 20
+  # arnold_warm:
+  #   method: POST
+  #   url: "http://ARNOLD_SESSION_HOST:8098/warm"
+  #   timeout: 10
+
+# OPTIONAL: pre-warm on a real doorbell press so the FIRST tap is not the one
+# that pays the cold handshake. Requires arnold_warm above.
+#
+# Trigger on the doorbell press sensor, not person detection - holding the
+# session pulls the hi-res stream (~4.7 Mbps), and person detection fires on
+# every passer-by. On the Reolink HA integration the press sensor is
+# binary_sensor.<name>_visitor.
+#
+# automation:
+#   - id: arnold_prewarm_doorbell_session
+#     alias: "Arnold: pre-warm doorbell session"
+#     mode: single
+#     max_exceeded: silent
+#     trigger:
+#       - platform: state
+#         entity_id: binary_sensor.YOUR_DOORBELL_visitor
+#         to: "on"
+#     action:
+#       - service: rest_command.arnold_warm
 
 input_text:
   arnold_last_played:
