@@ -9,7 +9,7 @@
 # Also downmixes to 16 kHz mono, which the doorbell backchannel is happy with.
 #
 # Usage:  ./pad-clips.sh <src_dir> <dst_dir> [lead_ms] [tail_s]
-# Example: ./pad-clips.sh ./arnold /media/frigate/arnold 1200 2.5
+# Example: ./pad-clips.sh ./arnold /arnold-clips 1200 2.5
 
 set -euo pipefail
 

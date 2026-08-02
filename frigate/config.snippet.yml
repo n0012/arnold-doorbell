@@ -17,4 +17,22 @@ go2rtc:
       - onvif://admin:{FRIGATE_CAMERA_PASSWORD}@CAMERA_IP:8000/
 
 # Quick manual test once Frigate has reloaded (should speak from the doorbell):
-#   curl -X POST "http://GO2RTC_HOST:1984/api/ffmpeg?dst=doorbell_talk&file=/media/frigate/arnold/choppa.mp3"
+#   curl -X POST "http://GO2RTC_HOST:1984/api/ffmpeg?dst=doorbell_talk&file=/arnold-clips/choppa.mp3"
+
+# IMPORTANT: mark every OTHER source of the same doorbell with #backchannel=0.
+# If they also negotiate the backchannel they contend with doorbell_talk, which
+# go2rtc documents as blocking backchannel access:
+#
+#     doorbell:
+#       - ffmpeg:http://CAMERA_IP/flv?...            # no backchannel anyway
+#       - rtsp://admin:{FRIGATE_CAMERA_PASSWORD}@CAMERA_IP:554/Preview_01_sub#backchannel=0
+#
+# (In our testing this made no measurable difference to latency, but it is the
+# documented-correct configuration.)
+#
+# Also mount the clips into the Frigate container - go2rtc opens the file
+# itself, so it must see them. Keep them OUT of /media/frigate; see gotcha #2:
+#
+#     frigate:
+#       volumes:
+#         - /path/to/arnold/clips:/arnold-clips:ro

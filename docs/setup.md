@@ -26,7 +26,7 @@ scripts/arnold-download.sh urls.txt ./arnold
 ## 2. Pad the clips
 
 ```bash
-scripts/pad-clips.sh ./arnold /media/frigate/arnold 1200 2.5
+scripts/pad-clips.sh ./arnold /arnold-clips 1200 2.5
 ```
 Put the output on a volume your **go2rtc/Frigate container can read by path**
 (e.g. under Frigate's media mount). ~8 MB for the full library.
@@ -44,7 +44,7 @@ curl -s http://GO2RTC_HOST:1984/api/streams | grep doorbell_talk
 ## 4. Smoke-test the pipeline
 
 ```bash
-curl -X POST "http://GO2RTC_HOST:1984/api/ffmpeg?dst=doorbell_talk&file=/media/frigate/arnold/choppa.mp3"
+curl -X POST "http://GO2RTC_HOST:1984/api/ffmpeg?dst=doorbell_talk&file=/arnold-clips/choppa.mp3"
 ```
 The doorbell should say *"Get to the choppa!"* If the **tail is cut**, increase
 the trailing silence in step 2. If the **start is cut**, increase the lead-in
@@ -57,7 +57,7 @@ python3 scripts/generate_config.py \
     --clips ./arnold \
     --go2rtc http://GO2RTC_HOST:1984 \
     --stream doorbell_talk \
-    --container-dir /media/frigate/arnold \
+    --container-dir /arnold-clips \
     --out arnold.yaml
 cp arnold.yaml /path/to/homeassistant/packages/arnold.yaml
 ```
